@@ -1,0 +1,122 @@
+================================================================
+GRAPH RAG — INFÉRENCE EFFICACE DES LLM
+But du projet et questions auxquelles le système doit répondre
+Version 0.1 — 22/09/2026 (document vivant, mis à jour à chaque décision)
+================================================================
+
+1. BUT
+------
+Construire un assistant de recherche qui répond à des questions sur la
+littérature arXiv (2020-2026) en inférence efficace des LLM :
+quantization, distillation, pruning, speculative decoding, KV cache,
+sparsité, etc.
+
+Le système doit :
+- répondre là où un RAG vectoriel classique échoue : questions
+  multi-hop, comparatives, agrégées, temporelles ;
+- TOUJOURS citer ses sources (papiers arXiv, et si possible l'extrait) ;
+- dire "je ne sais pas / absent du corpus" plutôt qu'inventer.
+
+Ce document sert de contrat : le schéma du graphe, l'extraction
+d'entités, le retrieval et le jeu d'évaluation doivent permettre de
+répondre à CHAQUE catégorie ci-dessous.
+
+
+2. TYPOLOGIE DES QUESTIONS
+--------------------------
+Pour chaque catégorie : exemples, puis éléments du graphe nécessaires.
+
+Q1. FACTUELLES SIMPLES (lookup)
+    - Quel papier a introduit AWQ, et quand ?
+    - Qui sont les auteurs de SmoothQuant ?
+    - Quelles méthodes le papier "LLM.int8()" propose-t-il ?
+    Besoin : Paper, Author, Method, lien "introduit par".
+    Note : un RAG vectoriel s'en sort déjà ; c'est la baseline.
+
+Q2. RELATIONNELLES À 1 SAUT
+    - Sur quels benchmarks SparseGPT a-t-il été évalué ?
+    - Quels modèles ont été quantifiés avec GPTQ ?
+    - Quels papiers citent Medusa ?
+    Besoin : Method -> Dataset / Model / Metric, citations.
+
+Q3. MULTI-HOP
+    - Quelles méthodes de quantization ont été comparées à GPTQ sur
+      Llama, et avec quels résultats ?
+    - Quelles méthodes de pruning évaluées sur les mêmes benchmarks
+      que Wanda proviennent de labos différents ?
+    - Quels datasets sont utilisés à la fois pour évaluer la
+      distillation et le speculative decoding ?
+    Besoin : chaîne Paper -> Result -> (Method, Model, Dataset,
+    Metric, valeur) ; baselines comparées.
+
+Q4. COMPARATIVES / AGRÉGÉES (chiffrées)
+    - Classe les méthodes de quantization 4 bits selon leur
+      perplexité WikiText-2 sur Llama-2-7B.
+    - Quel speedup rapportent les méthodes de speculative decoding
+      sur Vicuna ?
+    - Quelle méthode de compression du KV cache garde le meilleur
+      score LongBench à 20 % du cache ?
+    Besoin : nœud Result avec valeur numérique, unité, configuration
+    (bits, ratio, taille de modèle), papier source.
+    Attention : résultats rapportés par des papiers différents, dans
+    des conditions différentes -> la réponse doit le signaler.
+
+Q5. GÉNÉALOGIE / ÉVOLUTION TEMPORELLE
+    - Quelles méthodes ont succédé à GPTQ, et sur quels benchmarks
+      ont-elles été évaluées ?
+    - Comment ont évolué les approches de compression du KV cache
+      entre 2022 et 2025 ?
+    - Quelle est la lignée de Medusa -> EAGLE -> ... ?
+    Besoin : relations "étend / améliore / compare à", dates,
+    citations avec intention (Semantic Scholar).
+
+Q6. AUTEURS, LABOS, COMMUNAUTÉS
+    - Quels auteurs ou labos travaillent à la fois sur la
+      distillation et le speculative decoding ?
+    - Quels labos publient le plus sur la quantization depuis 2023 ?
+    - Qui collabore avec les auteurs de SparseGPT ?
+    Besoin : Author désambiguïsé, Institution, co-auteurs,
+    rattachement Paper -> Topic/sous-domaine.
+
+Q7. SYNTHÈSE / EXPLORATION GLOBALE
+    - Quelles sont les grandes familles d'approches pour réduire le
+      coût mémoire du KV cache ?
+    - Quelles sont les principales limites de la quantization
+      post-training soulignées dans la littérature ?
+    Besoin : taxonomie des méthodes (Topic / sous-catégories),
+    éventuellement résumés de communautés (style Microsoft GraphRAG).
+
+Q8. LACUNES (stretch goal, hors MVP)
+    - Quelles combinaisons méthode x modèle n'ont jamais été évaluées ?
+    - Quelles méthodes de pruning n'ont jamais été comparées à Wanda ?
+    Besoin : graphe Result suffisamment complet ; réponses à
+    présenter avec prudence ("non trouvé dans le corpus").
+
+
+3. HORS PÉRIMÈTRE
+-----------------
+- Questions hors du sous-domaine (ex. RLHF, vision pure).
+- Conseils de déploiement non sourcés ("quelle méthode dois-je
+  utiliser en prod ?") -> le système peut répondre uniquement en
+  s'appuyant sur des résultats cités.
+- Papiers hors corpus ou postérieurs au dernier snapshot.
+- Reproduction de texte intégral des papiers.
+
+
+4. FORMAT DE RÉPONSE ATTENDU
+----------------------------
+- Réponse concise en langage naturel.
+- Citations : [arXiv:XXXX.XXXXX] pour chaque affirmation.
+- Pour Q4 : tableau (méthode | modèle | dataset | métrique | valeur
+  | source) + avertissement sur la comparabilité.
+- Si l'information manque : le dire explicitement.
+
+
+5. LIEN AVEC L'ÉVALUATION
+-------------------------
+Le jeu d'évaluation contiendra des questions de chaque catégorie
+(Q1 à Q7), avec réponses de référence et papiers attendus.
+Métriques : recall@k (retrieval), exactitude, fidélité aux sources.
+Résultats rapportés PAR CATÉGORIE : c'est ce qui montrera où le
+graphe apporte quelque chose par rapport au vecteur seul
+(hypothèse : gain faible sur Q1, fort sur Q3 à Q6).
